@@ -1,0 +1,9 @@
+<div class="beatmaps">
+  <div class="beatmap" *ngFor="let beatmap of beatmaps">
+    <div class="title">{{beatmap.title}}</div>
+    <div class="artist">{{beatmap.artist}}</div>
+    <div class="difficulties" *ngFor="let difficulty of beatmap.difficulties; let i = index;" (click)="play(beatmap, i)">
+      <span>{{difficulty.name}}</span>
+    </div>
+  </div>
+</div>

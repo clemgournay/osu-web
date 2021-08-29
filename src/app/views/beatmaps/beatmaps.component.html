@@ -1,0 +1,37 @@
+<table class="beatmaps">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Artist</th>
+      <th>Source</th>
+      <th>Tags</th>
+      <th>Audio</th>
+      <th>Background</th>
+      <th>Difficulties</th>
+      <th>Delete</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="beatmap" *ngFor="let beatmap of beatmaps; let i = index;">
+      <td class="id">{{beatmap.orgID}}</td>
+      <td class="title">{{beatmap.title}}</td>
+      <td class="artist">{{beatmap.artist}}</td>
+      <td class="source">{{beatmap.source}}</td>
+      <td class="tags">{{beatmap.tags}}</td>
+      <td class="audio">{{beatmap.audioFilename}}</td>
+      <td class="background">{{beatmap.backgroundFilename}}</td>
+      <td class="difficulties">
+        <div *ngFor="let difficulty of beatmap.difficulties">{{difficulty.name}}</div>
+      </td>
+      <td class="delete"><button type="button" (click)="remove(i)">X</button></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="new">
+  <input type="file" (change)="onSelectFile($event)" #file>
+</div>
+
+<button type="button" (click)="goTo('select')">Back</button>
+
