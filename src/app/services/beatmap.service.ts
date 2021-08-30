@@ -36,7 +36,7 @@ export class BeatmapService {
   }
 
   delete(beatmap: Beatmap): Observable<any> {
-    return this.http.delete<any>(`${this.baseURL}/${beatmap._id}`, environment.apiOptions).pipe((catchError((e) => throwError(e))));
+    return this.http.delete<any>(`${this.baseURL}/${beatmap._id}`).pipe((catchError((e) => throwError(e))));
   }
 
 
