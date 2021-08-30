@@ -34,7 +34,9 @@ export class SelectComponent {
   }
 
   play(beatmap: Beatmap, index: number) {
-    this.router.navigateByUrl('play', {state: {beatmap: beatmap, diff: index}});
+    const selection = {beatmap: beatmap, diff: index};
+    localStorage.selection = JSON.stringify(selection);
+    this.router.navigateByUrl('play', {state: selection});
   }
 
 
