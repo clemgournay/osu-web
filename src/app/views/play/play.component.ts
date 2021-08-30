@@ -64,6 +64,7 @@ export class PlayComponent implements AfterViewInit {
     const dataResp = await this.beatmapService.getDiffData(this.beatmap, this.difficulty.id).toPromise();
     if (dataResp.status === 'success') {
       this.data = this.beatmapService.parseOSU(dataResp.data);
+      console.log('[BEATMAP DATA]', this.data);
       this.soundService.loadMusic(this.beatmap, this.onLoaded.bind(this));
     }  else {
       alert('Une erreur est survenue. Veuillez réessayer');

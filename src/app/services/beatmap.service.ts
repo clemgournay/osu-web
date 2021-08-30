@@ -5,6 +5,7 @@ import { catchError } from 'rxjs/operators';
 
 import { Beatmap } from '@models/beatmap';
 import { BeatmapData } from '@models/beatmap-data';
+import { HitCircle } from '@models/hitcircle';
 
 import { environment } from 'src/environments/environment';
 
@@ -47,27 +48,27 @@ export class BeatmapService {
   parseOSU(content: string) {
     const data: any = {};
 
-    const lines = content.split('\r\n');
+    const rows = content.split('\r\n');
     let currCategory: any;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
 
-      if (line[0]==='[') {
-        const category = line.replace(/\[/g, '').replace(/\]/g, '');
+      if (row[0]==='[') {
+        const category = row.replace(/\[/g, '').replace(/\]/g, '');
         data[category] = {};
         currCategory = category;
       } else {
 
-        const partsDot = line.split(':');
-        const partsComma = line.split(',');
+        const partsDot = row.split(':');
+        const partsComma = row.split(',');
 
-        if (line[0] !== '/') {
+        if (row[0] !== '/') {
           if (currCategory === 'HitObjects' || currCategory === 'TimingPoints' || currCategory === 'Events') {
             if (Object.keys(data[currCategory]).length === 0) {
               data[currCategory] = [];
             }
 
-            const partsComma = line.split(',');
+            const partsComma = row.split(',');
             const rightPart: Array<any> = [];
 
             partsComma.forEach((item: string) => {
@@ -93,7 +94,20 @@ export class BeatmapService {
       }
     }
 
-    console.log(data);
+    return this.formatHitObjects(data);
+  }
+
+  formatHitObjects(data: BeatmapData) {
+    if (data.HitObjects) {
+      data.HitObjects.forEach((row: any, index: number) => {
+        if (row.length <= 5) {
+          if (data.HitObjects && data.HitObjects[index]) {
+            data.HitObjects[index] = new HitCircle(row[0], row[1], row[2], row[3]);
+            console.log(row);
+          }
+        }
+      });
+    }
     return data;
   }
 
