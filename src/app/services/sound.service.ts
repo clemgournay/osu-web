@@ -31,7 +31,6 @@ export class SoundService {
   }
 
   loadSound(beatmap: Beatmap, callback: any) {
-
   }
 
   play(id: string) {
