@@ -4,6 +4,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { Beatmap } from '@models/beatmap';
+import { Asset } from '@models/asset';
 
 import { environment } from 'src/environments/environment';
 
@@ -20,17 +21,10 @@ export class SoundService {
     private http: HttpClient
   ) {}
 
-  loadMusic(beatmap: Beatmap, callback: any) {
-    this.sounds[beatmap.orgID] = new Audio();
-    this.sounds[beatmap.orgID].src = `${this.baseURL}/beatmaps/${beatmap.orgID}/music`;
-    this.sounds[beatmap.orgID].oncanplay = function() {
-      this.id = beatmap.orgID;
-      this.loaded = true;
-      callback();
+  setSounds(sounds: any) {
+    for (let id in sounds) {
+      this.sounds[id] = sounds[id].data;
     }
-  }
-
-  loadSound(beatmap: Beatmap, callback: any) {
   }
 
   play(id: string) {

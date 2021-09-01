@@ -1,0 +1,51 @@
+.beatmaps {
+  width: 50%;
+  height: 100%;
+  position: absolute;
+  right: 0;
+  top: 0;
+  overflow: auto;
+  padding: 20px 0px;
+
+  transition: all 0.5s ease-out;
+
+  .beatmap {
+    padding: 10px;
+    border: 1px solid grey;
+    border-radius: 5px;
+    margin-bottom: 10px;
+
+    &:hover {
+      background: rgb(216, 236, 243);
+      box-shadow: 0px 0px 10px lightskyblue;
+    }
+
+    .title {
+      font-size: 20px;
+    }
+
+    .artist {
+      margin-top: 2px;
+      color: grey;
+    }
+
+    .difficulties {
+      &:after {
+        content: '';
+        display: block;
+        clear: both;
+      }
+      .difficulty {
+        float: left;
+        margin-right: 5px;
+        cursor: pointer;
+        padding: 5px;
+        &:hover {
+          background: lightblue;
+          border-radius: 5px;
+        }
+      }
+    }
+
+  }
+}

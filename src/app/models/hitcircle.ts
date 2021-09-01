@@ -1,15 +1,11 @@
-export class HitCircle {
+import { Point } from '@models/point';
+import { HitObject } from '@models/hitobject';
 
-  x: number;
-  y: number;
-  ms: number;
-  soundType: number;
+export class HitCircle extends HitObject {
 
-  constructor(x: number, y: number, ms: number, soundType: number) {
-    this.x = x;
-    this.y = y;
-    this.ms = ms;
-    this.soundType = soundType;
+  constructor(point: Point, ms: number, soundType: number) {
+    super(point, ms, soundType);
   }
+
 
 }
