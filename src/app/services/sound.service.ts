@@ -31,4 +31,13 @@ export class SoundService {
     this.sounds[id].play();
   }
 
+  pause(id: string) {
+    this.sounds[id].pause();
+  }
+
+  stop(id: string) {
+    this.pause(id);
+    this.sounds[id].currentTime = 0;
+  }
+
 }

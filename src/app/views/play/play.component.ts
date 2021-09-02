@@ -38,6 +38,10 @@ export class PlayComponent implements AfterViewInit {
   lineIndex: number = 0;
   playArea: PlayArea = {width: 0, height: 0, left: 0, top: 0};
   osuArea: PlayArea = {width: 500, height: 500, left: 0, top: 0};
+  aspectRatio: number = 0;
+  loopID: number;
+  circleApproachDuration: number = 800;
+
 
   constructor(
     private router: Router,
@@ -86,7 +90,7 @@ export class PlayComponent implements AfterViewInit {
         this.assets = loadedAssets;
         this.soundService.setSounds(this.assets.sounds);
         this.run();
-        //this.canvas.style.backgroundImage = 'url(' + this.assets.images['bg'].data.src + ')'
+        this.canvas.style.backgroundImage = 'url(' + this.assets.images['bg'].data.src + ')'
       });
 
     }  else {
@@ -110,7 +114,6 @@ export class PlayComponent implements AfterViewInit {
   initView() {
     this.resize();
     this.draw();
-
   }
 
   update(currentTime: number) {
@@ -118,14 +121,12 @@ export class PlayComponent implements AfterViewInit {
 
     if (this.hitObjects) {
       this.hitObjects.forEach((hitObject: HitCircle | Slider) => {
-        if (this.ms >= hitObject.ms - 500 && this.ms <= hitObject.ms + 500) {
+        if (this.ms >= hitObject.ms - this.circleApproachDuration && this.ms <= hitObject.ms + this.circleApproachDuration) {
           if (hitObject instanceof HitCircle) {
-            if (this.ms >= hitObject.ms - 500 && this.ms <= hitObject.ms) {
-              hitObject.opacity += 0.05;
-              if (hitObject.opacity > 1) hitObject.opacity = 1;
-            } else if (this.ms >= hitObject.ms && this.ms <= hitObject.ms + 500) {
-              hitObject.opacity -= 0.05;
-              if (hitObject.opacity < 0) hitObject.opacity = 0;
+            if ((this.ms >= hitObject.ms - this.circleApproachDuration && this.ms < hitObject.ms)) {
+              hitObject.approach(this.getFrameRate(), this.circleApproachDuration);
+            } else if ((this.ms >= hitObject.ms && this.ms <= hitObject.ms + this.circleApproachDuration)) {
+              hitObject.disappear(this.getFrameRate(), this.circleApproachDuration);
             }
           }
         }
@@ -133,7 +134,7 @@ export class PlayComponent implements AfterViewInit {
     }
     this.draw();
     this.lastMS = this.ms;
-    window.requestAnimationFrame(this.update.bind(this));
+    this.loopID = window.requestAnimationFrame(this.update.bind(this));
   }
 
   getFrameRate() {
@@ -143,6 +144,7 @@ export class PlayComponent implements AfterViewInit {
   resize() {
     this.canvasSize.width = window.innerWidth;
     this.canvasSize.height = window.innerHeight;
+    this.aspectRatio = this.canvasSize.width/this.canvasSize.height;
     if (this.canvasSize.width > this.canvasSize.height) {
       this.playArea.height = this.canvasSize.height;
       this.playArea.width = this.playArea.height;
@@ -154,11 +156,11 @@ export class PlayComponent implements AfterViewInit {
       this.playArea.left = 0;
       this.playArea.top = (this.canvasSize.height/2) - (this.playArea.height/2);
     }
-    console.log(this.playArea)
-
   }
 
   draw() {
+    this.ctx.clearRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+    this.ctx.globalAlpha = 1;
     this.ctx.fillStyle = 'blue';
 
     if (this.hitObjects) {
@@ -168,27 +170,64 @@ export class PlayComponent implements AfterViewInit {
         }
       });
     }
+    this.ctx.globalAlpha = 1;
   }
 
   drawHitcircle(hitCircle: HitCircle) {
     if (hitCircle.opacity > 0) {
-      this.ctx.beginPath();
-      this.ctx.globalAlpha = hitCircle.opacity;
-      this.ctx.fillStyle = 'blue';
-      let sizeMultipler = this.playArea.width * 0.5;
 
       const screenX = Math.floor((hitCircle.point.x * this.playArea.width) / this.osuArea.width);
       const screenY = Math.floor((hitCircle.point.y * this.playArea.height) / this.osuArea.height);
-      console.log(screenX, screenY);
 
-      this.ctx.arc(this.playArea.left + screenX, this.playArea.top + screenY, sizeMultipler * 0.1,  0, 2*Math.PI);
+      const multiplier = this.aspectRatio * 0.7;
+      if (hitCircle.approachCircleShow) {
+        this.ctx.beginPath();
+        this.ctx.globalAlpha = hitCircle.opacity;
+        this.ctx.strokeStyle = 'white';
+        this.ctx.lineWidth = this.aspectRatio * 4;
+        this.ctx.arc(this.playArea.left + screenX, this.playArea.top + screenY, multiplier * hitCircle.approachCircleSize, 0, 2*Math.PI);
+        this.ctx.stroke();
+        this.ctx.closePath();
+      }
+
+      this.ctx.beginPath();
+      this.ctx.globalAlpha = hitCircle.opacity;
+      this.ctx.fillStyle = 'blue';
+      this.ctx.strokeStyle = 'white';
+      this.ctx.lineWidth = this.aspectRatio * 4;
+      this.ctx.arc(this.playArea.left + screenX, this.playArea.top + screenY, multiplier * hitCircle.size,  0, 2*Math.PI);
       this.ctx.fill();
+      this.ctx.stroke();
+      this.ctx.closePath();
     }
   }
 
   @HostListener('window:resize', ['$event'])
   onResize(e: Event) {
     this.resize();
+  }
+
+  @HostListener('window:blur', ['$event'])
+  onBlur() {
+    //window.cancelAnimationFrame(this.loopID);
+  }
+
+  @HostListener('window:focus', ['$event'])
+  onFocus() {
+    //this.update(this.ms);
+  }
+
+
+  reset() {
+    this.startMS = 0;
+    this.lastMS = 0;
+    this.ms = 0;
+    this.soundService.stop('music');
+  }
+
+  ngOnDestroy() {
+    this.reset();
+    window.cancelAnimationFrame(this.loopID);
   }
 
 }
