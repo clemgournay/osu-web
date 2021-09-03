@@ -1,21 +1,24 @@
-import { Point } from '@models/point';
+import { Coordinates } from '@models/coordinates';
 import { HitObject } from '@models/hitobject';
 
 export class HitCircle extends HitObject {
 
   size: number = 50;
+  radius: number = 25;
+  screenSize: number = 0;
+  screenRadius: number = 0;
   approachCircleSize: number;
+  approachCircleScreenSize: number = 0;
   approachCircleShow: boolean = true;
 
-  constructor(point: Point, ms: number, soundType: number) {
-    super(point, ms, soundType);
+  constructor(pos: Coordinates, ms: number, soundType: number) {
+    super(pos, ms, soundType);
     this.approachCircleSize = this.size * 3;
   }
 
   setSize(size: number) {
     this.size = size;
   }
-
 
   approach(frameRate: number, duration: number) {
     this.fadeIn(frameRate, duration);
@@ -34,6 +37,17 @@ export class HitCircle extends HitObject {
     if (this.approachCircleSize < this.size) {
       this.approachCircleSize = this.size;
     }
+  }
+
+  isCoorInside(coor: Coordinates): boolean {
+    if (
+      (coor.x - this.screenPos.x) * (coor.x - this.screenPos.x) +
+      (coor.y - this.screenPos.y) * (coor.y - this.screenPos.y) <=
+      this.screenRadius * this.screenRadius
+    )
+      return true;
+    else
+      return false;
   }
 
 

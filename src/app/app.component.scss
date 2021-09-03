@@ -1,0 +1,8 @@
+.container {
+  width: 100%;
+  height: 100%;
+  cursor: url(../assets/skins/default/cursor.png) 30 30, auto;
+  &.mousedown {
+    cursor: url(../assets/skins/default/cursor-mousedown.png) 25 25, auto;
+  }
+}

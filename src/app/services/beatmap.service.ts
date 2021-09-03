@@ -5,7 +5,7 @@ import { catchError } from 'rxjs/operators';
 
 import { Beatmap } from '@models/beatmap';
 import { BeatmapData } from '@models/beatmap-data';
-import { Point } from '@models/point';
+import { Coordinates } from '@models/coordinates';
 import { HitCircle } from '@models/hitcircle';
 import { Slider } from '@models/slider';
 
@@ -104,18 +104,18 @@ export class BeatmapService {
       data.HitObjects.forEach((row: any, index: number) => {
         if (row.length <= 5) {
           if (data.HitObjects && data.HitObjects[index]) {
-            const point: Point = {x: row[0], y: row[1]};
+            const point: Coordinates = {x: row[0], y: row[1]};
             data.HitObjects[index] = new HitCircle(point, row[2], row[3]);
           }
         } else if (row.length >= 8) {
           if (data.HitObjects && data.HitObjects[index]) {
-            const point: Point = {x: row[0], y: row[1]};
+            const point: Coordinates = {x: row[0], y: row[1]};
             const bezierItems = row[5].split('|');
             bezierItems.shift();
-            const bezierPoints: Array<Point> = [];
+            const bezierPoints: Array<Coordinates> = [];
             bezierItems.forEach((couple: string) => {
               const points = couple.split(':');
-              const bezierPoint = new Point(parseInt(points[0]), parseInt(points[1]));
+              const bezierPoint = new Coordinates(parseInt(points[0]), parseInt(points[1]));
               bezierPoints.push(bezierPoint);
             });
             data.HitObjects[index] = new Slider(point, row[2], row[3], bezierPoints, row[5]);

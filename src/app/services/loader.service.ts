@@ -15,13 +15,42 @@ import { environment } from 'src/environments/environment';
 export class LoaderService {
 
   baseURL: string = environment.apiURL;
+  skinAssets: any = {};
   beatmapAssets: any = {};
 
   constructor(
     private http: HttpClient
   ) {}
 
-  async load(beatmap: Beatmap, assets: Array<Asset>, callback: any) {
+  async loadSkin(skin: string, callback: any) {
+    const assets: Array<Asset> = [
+      {id: 'hitcircle-overlay', filename: 'hitcircleoverlay.png', type: 'image'},
+      {id: 'approach-circle', filename: 'approachcircle.png', type: 'image'},
+      {id: 'hit0', filename: 'hit0.png', type: 'image'},
+      {id: 'hit50', filename: 'hit50.png', type: 'image'},
+      {id: 'hit100', filename: 'hit100.png', type: 'image'},
+      {id: 'hit300', filename: 'hit300.png', type: 'image'}
+    ];
+    if (!this.skinAssets[skin]) {
+      this.skinAssets[skin] = {sounds: {}, images: {}};
+      for (let i = 0; i < assets.length; i++) {
+        const asset = assets[i];
+        switch(asset.type) {
+          case 'image':
+            const imageSRC = `assets/skins/${skin}/${asset.filename}`;
+            const image = await this.loadImage(imageSRC);
+            asset.data = image;
+            this.skinAssets[skin].images[asset.id] = asset;
+            break;
+        }
+      }
+      callback(this.skinAssets[skin]);
+    } else {
+      callback(this.skinAssets[skin]);
+    }
+  }
+
+  async loadAssets(beatmap: Beatmap, assets: Array<Asset>, callback: any) {
     if (!this.beatmapAssets[beatmap.orgID]) {
       this.beatmapAssets[beatmap.orgID] = {sounds: {}, images: {}};
       for (let i = 0; i < assets.length; i++) {

@@ -6,5 +6,19 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'osu-web';
+
+  mousedown: boolean = false;
+
+  onMousedown(e: any) {
+    if (e.which !== 2) {
+      this.mousedown = true;
+    }
+  }
+
+  onMouseup(e: any){
+    if (e.which !== 2) {
+      this.mousedown = false;
+    }
+  }
+
 }

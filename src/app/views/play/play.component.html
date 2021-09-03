@@ -1,6 +1,11 @@
-<div class="title">{{beatmap.artist}} - {{beatmap.title}}</div>
-<canvas
-  [width]="canvasSize.width" [height]="canvasSize.height"
-  [style.width]="canvasSize.width + 'px'" [style.height]="canvasSize.height + 'px'"
-#canvas></canvas>
-<div class="ms">{{ms}}</div>
+<div class="game-view noselect">
+  <div class="title">{{beatmap.artist}} - {{beatmap.title}}</div>
+  <div class="score">{{score}}</div>
+  <canvas
+    [width]="canvasSize.width" [height]="canvasSize.height"
+    [style.width]="canvasSize.width + 'px'" [style.height]="canvasSize.height + 'px'"
+    (mousedown)="onMousedown($event)" (mouseup)="onMouseup($event)"
+    (contextmenu)="preventContextMenu()"
+  #canvas></canvas>
+  <div class="ms">{{ms}}</div>
+</div>

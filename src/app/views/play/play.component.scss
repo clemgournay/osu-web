@@ -24,3 +24,14 @@ canvas {
   right: 0;
   bottom: 0;
 }
+
+.score {
+  font-size: 50px;
+  text-shadow: 0px 0px 5px black;
+  position: fixed;
+  right: 10px;
+  top: 10px;
+  color: white;
+  z-index: 2;
+  text-align: right;
+}

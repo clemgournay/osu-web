@@ -8,6 +8,7 @@ import { Beatmap } from '@models/beatmap';
 import { BeatmapDifficulty } from '@models/beatmap-difficulty';
 import { Asset } from '@models/asset';
 import { BeatmapData } from '@models/beatmap-data';
+import { Coordinates } from '@models/coordinates';
 import { HitCircle } from '@models/hitcircle';
 import { Slider } from '@models/slider';
 
@@ -40,8 +41,9 @@ export class PlayComponent implements AfterViewInit {
   osuArea: PlayArea = {width: 500, height: 500, left: 0, top: 0};
   aspectRatio: number = 0;
   loopID: number;
+  score: number = 0;
   circleApproachDuration: number = 800;
-
+  clickPos: Coordinates | null = null;
 
   constructor(
     private router: Router,
@@ -85,13 +87,20 @@ export class PlayComponent implements AfterViewInit {
         {id: 'music', filename: this.beatmap.audioFilename, type: 'sound'},
         {id: 'bg', filename: this.beatmap.backgroundFilename, type: 'image'}
       ];
-      this.loaderService.load(this.beatmap, assets, (loadedAssets: Array<Asset>) => {
-        console.log(loadedAssets);
+
+      this.loaderService.loadSkin('default', (loadedAssets: any) => {
         this.assets = loadedAssets;
-        this.soundService.setSounds(this.assets.sounds);
-        this.run();
-        this.canvas.style.backgroundImage = 'url(' + this.assets.images['bg'].data.src + ')'
+        console.log(loadedAssets);
+        this.loaderService.loadAssets(this.beatmap, assets, (loadedAssets: any) => {
+          for (let id in loadedAssets.images) this.assets.images[id] = loadedAssets.images[id];
+          for (let id in loadedAssets.sounds) this.assets.sounds[id] = loadedAssets.sounds[id];
+          console.log('[ASSETS]', this.assets);
+          this.canvas.style.backgroundImage = 'url(' + this.assets.images['bg'].data.src + ')'
+          this.soundService.setSounds(this.assets.sounds);
+          this.run();
+        });
       });
+
 
     }  else {
       alert('Une erreur est survenue. Veuillez réessayer');
@@ -120,16 +129,73 @@ export class PlayComponent implements AfterViewInit {
     this.ms = Math.floor(currentTime - this.startMS);
 
     if (this.hitObjects) {
+
+      const perfectRange = (10 * this.circleApproachDuration) / 100;
+      const goodRange = (20 * this.circleApproachDuration) / 100;
+      const okRange = (30 * this.circleApproachDuration) / 100;
+
       this.hitObjects.forEach((hitObject: HitCircle | Slider) => {
+
+        /* Animations */
         if (this.ms >= hitObject.ms - this.circleApproachDuration && this.ms <= hitObject.ms + this.circleApproachDuration) {
           if (hitObject instanceof HitCircle) {
-            if ((this.ms >= hitObject.ms - this.circleApproachDuration && this.ms < hitObject.ms)) {
-              hitObject.approach(this.getFrameRate(), this.circleApproachDuration);
-            } else if ((this.ms >= hitObject.ms && this.ms <= hitObject.ms + this.circleApproachDuration)) {
-              hitObject.disappear(this.getFrameRate(), this.circleApproachDuration);
+            const hitCircle = hitObject;
+            if ((this.ms >= hitObject.ms - this.circleApproachDuration && this.ms < hitCircle.ms)) {
+              hitCircle.approach(this.getFrameRate(), this.circleApproachDuration);
+            } else if ((this.ms >= hitCircle.ms && this.ms <= hitCircle.ms + this.circleApproachDuration)) {
+              hitCircle.disappear(this.getFrameRate(), this.circleApproachDuration);
             }
           }
         }
+
+        /* Scoring */
+        if (!hitObject.done) {
+          if (this.clickPos) {
+            if (hitObject instanceof HitCircle) {
+              const hitCircle = hitObject;
+              if (hitCircle.isCoorInside(this.clickPos)) {
+                if (
+                  this.ms >= hitCircle.ms - perfectRange && this.ms <= hitCircle.ms ||
+                  this.ms >= hitCircle.ms && this.ms <= hitCircle.ms + perfectRange
+                ) {
+                  hitCircle.clicked = true;
+                  hitCircle.done = true;
+                  hitCircle.score = 300;
+                  this.score += 300;
+                } else if (
+                  this.ms >= hitCircle.ms - goodRange && this.ms <= hitCircle.ms - perfectRange ||
+                  this.ms >= hitCircle.ms + perfectRange && this.ms <= hitCircle.ms + goodRange
+                ) {
+                  hitCircle.clicked = true;
+                  hitCircle.done = true;
+                  hitCircle.score = 100;
+                  this.score += 100;
+                } else if (
+                  this.ms >= hitCircle.ms - okRange && this.ms <= hitCircle.ms - goodRange ||
+                  this.ms >= hitCircle.ms + goodRange && this.ms <= hitCircle.ms + okRange
+                ) {
+                  hitCircle.clicked = true;
+                  hitCircle.done = true;
+                  hitCircle.score = 50;
+                  this.score += 50;
+                } else {
+                  hitCircle.score = 0;
+                  hitCircle.clicked = true;
+                  hitCircle.done = true;
+                }
+              }
+            }
+          } else {
+            if (hitObject instanceof HitCircle) {
+              const hitCircle = hitObject;
+              if (!hitCircle.clicked && this.ms >= hitCircle.ms + okRange) {
+                hitCircle.score = 0;
+                hitCircle.done = true;
+              }
+            }
+          }
+        }
+
       });
     }
     this.draw();
@@ -174,32 +240,98 @@ export class PlayComponent implements AfterViewInit {
   }
 
   drawHitcircle(hitCircle: HitCircle) {
-    if (hitCircle.opacity > 0) {
+    if (hitCircle.visible) {
 
-      const screenX = Math.floor((hitCircle.point.x * this.playArea.width) / this.osuArea.width);
-      const screenY = Math.floor((hitCircle.point.y * this.playArea.height) / this.osuArea.height);
-
-      const multiplier = this.aspectRatio * 0.7;
-      if (hitCircle.approachCircleShow) {
-        this.ctx.beginPath();
-        this.ctx.globalAlpha = hitCircle.opacity;
-        this.ctx.strokeStyle = 'white';
-        this.ctx.lineWidth = this.aspectRatio * 4;
-        this.ctx.arc(this.playArea.left + screenX, this.playArea.top + screenY, multiplier * hitCircle.approachCircleSize, 0, 2*Math.PI);
-        this.ctx.stroke();
-        this.ctx.closePath();
-      }
+      const multiplier = this.aspectRatio * 1.8;
+      hitCircle.screenPos.x = Math.floor((hitCircle.pos.x * this.playArea.width) / this.osuArea.width);
+      hitCircle.screenPos.y = Math.floor((hitCircle.pos.y * this.playArea.height) / this.osuArea.height);
+      hitCircle.screenSize = hitCircle.size * multiplier;
+      hitCircle.screenRadius = (hitCircle.screenSize/2);
+      hitCircle.approachCircleScreenSize = hitCircle.approachCircleSize * multiplier;
 
       this.ctx.beginPath();
       this.ctx.globalAlpha = hitCircle.opacity;
-      this.ctx.fillStyle = 'blue';
-      this.ctx.strokeStyle = 'white';
-      this.ctx.lineWidth = this.aspectRatio * 4;
-      this.ctx.arc(this.playArea.left + screenX, this.playArea.top + screenY, multiplier * hitCircle.size,  0, 2*Math.PI);
-      this.ctx.fill();
-      this.ctx.stroke();
+
+      /* Approach Circle */
+      if (hitCircle.approachCircleShow) {
+        this.ctx.drawImage(
+          this.assets.images['approach-circle'].data,
+          (this.playArea.left + hitCircle.screenPos.x) - (hitCircle.approachCircleScreenSize/2),
+          (this.playArea.top + hitCircle.screenPos.y) - (hitCircle.approachCircleScreenSize/2),
+          hitCircle.approachCircleScreenSize, hitCircle.approachCircleScreenSize
+        );
+      }
+
+      if (hitCircle.score === undefined || (hitCircle.score !== undefined && hitCircle.score > 0)) {
+
+         /* Main circle */
+        this.ctx.fillStyle = 'blue';
+        this.ctx.arc(
+          this.playArea.left + hitCircle.screenPos.x,
+          this.playArea.top + hitCircle.screenPos.y,
+          hitCircle.screenSize * 0.4,
+          0, 2*Math.PI
+        );
+        this.ctx.fill();
+        this.ctx.drawImage(
+          this.assets.images['hitcircle-overlay'].data,
+          (this.playArea.left + hitCircle.screenPos.x) - (hitCircle.screenSize/2),
+          (this.playArea.top + hitCircle.screenPos.y) - (hitCircle.screenSize/2),
+          hitCircle.screenSize, hitCircle.screenSize
+        );
+
+        /* Score */
+        let image;
+        switch(hitCircle.score) {
+          case 50:
+            image = this.assets.images['hit50'].data;
+            break;
+          case 100:
+            image = this.assets.images['hit100'].data;
+            break;
+          case 300:
+            image = this.assets.images['hit300'].data;
+            break;
+        }
+        if (image) {
+          const width = hitCircle.screenSize * 0.7;
+          const height = width * (image.height/image.width);
+          this.ctx.drawImage(
+            image,
+            (this.playArea.left + hitCircle.screenPos.x) - (width/2),
+            (this.playArea.top + hitCircle.screenPos.y) - (height/2),
+            width, height
+          );
+        }
+      } else if (hitCircle.score !== undefined && hitCircle.score === 0) {
+        const size = hitCircle.screenSize * 0.8;
+        this.ctx.drawImage(
+          this.assets.images['hit0'].data,
+          (this.playArea.left + hitCircle.screenPos.x) - (size/2),
+          (this.playArea.top + hitCircle.screenPos.y) - (size/2),
+          size, size
+        );
+      }
       this.ctx.closePath();
     }
+  }
+
+  onMousedown(e: any) {
+    if (e.which !== 2) {
+      const x = e.pageX - this.playArea.left;
+      const y = e.pageY - this.playArea.top;
+      this.clickPos = {x, y};
+    }
+  }
+
+  onMouseup(e: any) {
+    if (e.which !== 2) {
+      this.clickPos = null;
+    }
+  }
+
+  preventContextMenu() {
+    return false;
   }
 
   @HostListener('window:resize', ['$event'])
