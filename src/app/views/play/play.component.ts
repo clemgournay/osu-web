@@ -52,6 +52,7 @@ export class PlayComponent implements AfterViewInit {
     private soundService: SoundService
   ) {
     this.init();
+    this.windowFocusEvents();
   }
 
   init() {
@@ -74,6 +75,16 @@ export class PlayComponent implements AfterViewInit {
     } else {
       this.router.navigateByUrl('select');
     }
+  }
+
+  windowFocusEvents() {
+    window.addEventListener('focus', event => {
+      this.update(this.ms);
+    });
+    window.addEventListener('blur', event => {
+      console.log('BLUR');
+      window.cancelAnimationFrame(this.loopID);
+    });
   }
 
   async load() {
@@ -127,6 +138,7 @@ export class PlayComponent implements AfterViewInit {
 
   update(currentTime: number) {
     this.ms = Math.floor(currentTime - this.startMS);
+    console.log(this.ms);
 
     if (this.hitObjects) {
 
@@ -338,17 +350,6 @@ export class PlayComponent implements AfterViewInit {
   onResize(e: Event) {
     this.resize();
   }
-
-  @HostListener('window:blur', ['$event'])
-  onBlur() {
-    //window.cancelAnimationFrame(this.loopID);
-  }
-
-  @HostListener('window:focus', ['$event'])
-  onFocus() {
-    //this.update(this.ms);
-  }
-
 
   reset() {
     this.startMS = 0;
