@@ -29,7 +29,16 @@ export class LoaderService {
       {id: 'hit0', filename: 'hit0.png', type: 'image'},
       {id: 'hit50', filename: 'hit50.png', type: 'image'},
       {id: 'hit100', filename: 'hit100.png', type: 'image'},
-      {id: 'hit300', filename: 'hit300.png', type: 'image'}
+      {id: 'hit300', filename: 'hit300.png', type: 'image'},
+      /*{id: 'count1', filename: 'count1.png', type: 'image'},
+      {id: 'count2', filename: 'count2.png', type: 'image'},
+      {id: 'count3', filename: 'count3.png', type: 'image'},
+      {id: 'count4', filename: 'count4.png', type: 'image'},
+      {id: 'count5', filename: 'count5.png', type: 'image'},
+      {id: 'count6', filename: 'count6.png', type: 'image'},
+      {id: 'count7', filename: 'count7.png', type: 'image'},
+      {id: 'count8', filename: 'count8.png', type: 'image'},
+      {id: 'count9', filename: 'count9.png', type: 'image'}*/
     ];
     if (!this.skinAssets[skin]) {
       this.skinAssets[skin] = {sounds: {}, images: {}};

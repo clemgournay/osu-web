@@ -11,8 +11,8 @@ export class HitCircle extends HitObject {
   approachCircleScreenSize: number = 0;
   approachCircleShow: boolean = true;
 
-  constructor(pos: Coordinates, ms: number, soundType: number) {
-    super(pos, ms, soundType);
+  constructor(pos: Coordinates, ms: number, comboNB: number, soundType: number) {
+    super(pos, ms, comboNB, soundType);
     this.approachCircleSize = this.size * 3;
   }
 

@@ -138,7 +138,6 @@ export class PlayComponent implements AfterViewInit {
 
   update(currentTime: number) {
     this.ms = Math.floor(currentTime - this.startMS);
-    console.log(this.ms);
 
     if (this.hitObjects) {
 
@@ -291,6 +290,18 @@ export class PlayComponent implements AfterViewInit {
           (this.playArea.top + hitCircle.screenPos.y) - (hitCircle.screenSize/2),
           hitCircle.screenSize, hitCircle.screenSize
         );
+
+        /* Combo */
+        if (!hitCircle.score) {
+          this.ctx.textAlign = 'center';
+          this.ctx.font = '70px Helvetica';
+          this.ctx.fillStyle = 'white';
+          this.ctx.fillText(
+            hitCircle.comboNB.toString(),
+            (this.playArea.left + hitCircle.screenPos.x),
+            (this.playArea.top+25 + hitCircle.screenPos.y)
+          )
+        }
 
         /* Score */
         let image;

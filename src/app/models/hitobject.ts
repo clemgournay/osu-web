@@ -10,10 +10,11 @@ export class HitObject {
   hiding: boolean;
   visible: boolean;
   clicked: boolean;
+  comboNB: number;
   score: number | undefined;
   done: boolean;
 
-  constructor(pos: Coordinates, ms: number, soundType: number) {
+  constructor(pos: Coordinates, ms: number, comboNB: number, soundType: number) {
     this.pos = pos;
     this.screenPos = {x: 0, y: 0};
     this.ms = ms;
@@ -23,6 +24,7 @@ export class HitObject {
     this.hiding = false;
     this.visible = false;
     this.clicked = false;
+    this.comboNB = comboNB;
     this.done = false;
   }
 

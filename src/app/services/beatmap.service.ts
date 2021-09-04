@@ -100,12 +100,14 @@ export class BeatmapService {
   }
 
   formatHitObjects(data: BeatmapData) {
+    let comboNB = 1;
     if (data.HitObjects) {
       data.HitObjects.forEach((row: any, index: number) => {
-        if (row.length <= 5) {
+        if (row.length <= 6) {
           if (data.HitObjects && data.HitObjects[index]) {
             const point: Coordinates = {x: row[0], y: row[1]};
-            data.HitObjects[index] = new HitCircle(point, row[2], row[3]);
+            if (row[3]===5) comboNB = 1;
+            data.HitObjects[index] = new HitCircle(point, row[2], comboNB, row[4]);
           }
         } else if (row.length >= 8) {
           if (data.HitObjects && data.HitObjects[index]) {
@@ -118,10 +120,11 @@ export class BeatmapService {
               const bezierPoint = new Coordinates(parseInt(points[0]), parseInt(points[1]));
               bezierPoints.push(bezierPoint);
             });
-            data.HitObjects[index] = new Slider(point, row[2], row[3], bezierPoints, row[5]);
+            if (row[3]===5) comboNB = 1;
+            data.HitObjects[index] = new Slider(point, row[2], comboNB, row[4], bezierPoints, row[6]);
           }
         }
-
+        comboNB++;
       });
     }
     return data;
