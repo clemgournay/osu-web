@@ -8,7 +8,7 @@ import { BeatmapsComponent } from './views/beatmaps/beatmaps.component';
 const routes: Routes = [
   {path: '', redirectTo: 'select', pathMatch: 'full'},
   {path: 'select', component: SelectComponent},
-  {path: 'play', component: PlayComponent},
+  {path: 'play/:id/:diff', component: PlayComponent},
   {path: 'beatmaps', component: BeatmapsComponent}
 ];
 

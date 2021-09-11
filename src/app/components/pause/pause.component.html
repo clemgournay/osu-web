@@ -1,0 +1,10 @@
+<div class="overlay" *ngIf="shown">
+  <div class="menu">
+    <button type="button" class="btn" (click)="continue.emit()">
+      <span *ngIf="ms === 0">Play</span>
+      <span *ngIf="ms > 0">Continue</span>
+    </button>
+    <button type="button" class="btn" *ngIf="ms > 0" (click)="restart.emit()">Restart</button>
+    <button type="button" class="btn" (click)="goTo('select')">Beatmap Selection</button>
+  </div>
+</div>

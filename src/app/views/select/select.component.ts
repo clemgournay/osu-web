@@ -15,6 +15,7 @@ import { BeatmapService } from '@services/beatmap.service';
 export class SelectComponent {
 
   beatmaps: Array<Beatmap> = [];
+  selectedBeatmap: Beatmap;
 
   constructor(
     private router: Router,
@@ -34,9 +35,7 @@ export class SelectComponent {
   }
 
   play(beatmap: Beatmap, index: number) {
-    const selection = {beatmap: beatmap, diff: index};
-    localStorage.selection = JSON.stringify(selection);
-    this.router.navigateByUrl('play', {state: selection});
+    this.router.navigateByUrl(`play/${beatmap.orgID}/${index}`, {state: {fromSelect: true}});
   }
 
 

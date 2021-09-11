@@ -1,8 +1,7 @@
-
-
 import { Component, ViewChild, AfterViewInit, ElementRef, HostListener } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
+import { ServerResp } from '@models/server-resp';
 import { PlayArea } from '@models/play-area';
 import { Beatmap } from '@models/beatmap';
 import { BeatmapDifficulty } from '@models/beatmap-difficulty';
@@ -16,6 +15,8 @@ import { BeatmapService } from '@services/beatmap.service';
 import { LoaderService } from '@services/loader.service';
 import { SoundService } from '@services/sound.service';
 
+import { PauseComponent } from '@components/pause/pause.component';
+
 @Component({
   selector: 'app-play',
   templateUrl: './play.component.html',
@@ -24,6 +25,8 @@ import { SoundService } from '@services/sound.service';
 export class PlayComponent implements AfterViewInit {
 
   @ViewChild('canvas') canvasRef: ElementRef;
+  @ViewChild('pause') pauseView: PauseComponent;
+
   canvas: HTMLCanvasElement;
   canvasSize: {width: number, height: number} =  {width: 0, height: 0};
   ctx: CanvasRenderingContext2D;
@@ -32,7 +35,7 @@ export class PlayComponent implements AfterViewInit {
   data: BeatmapData;
   hitObjects: Array<HitCircle | Slider>;
   music: HTMLAudioElement;
-  startMS: number = 0;
+  startMS: number = -1;
   lastMS: number = 0;
   assets: any = {images: [], sounds: []};
   ms: number;
@@ -44,9 +47,13 @@ export class PlayComponent implements AfterViewInit {
   score: number = 0;
   circleApproachDuration: number = 800;
   clickPos: Coordinates | null = null;
+  pausing: boolean = false;
+  pauseTime: number = 0;
+  fromSelect: boolean = false;
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private beatmapService: BeatmapService,
     private loaderService: LoaderService,
     private soundService: SoundService
@@ -57,33 +64,25 @@ export class PlayComponent implements AfterViewInit {
 
   init() {
     const nav = this.router.getCurrentNavigation();
-    if (nav && nav.extras.state) {
-      this.beatmap = nav.extras.state.beatmap;
-      const diffIndex = nav.extras.state.diff;
-      this.difficulty = this.beatmap.difficulties[diffIndex];
-      console.log('[BEATMAP]', this.beatmap)
-      console.log('[DIFFICULTY]', this.difficulty);
-      this.load();
-    } else if (localStorage.selection) {
-      const selection = JSON.parse(localStorage.selection);
-      this.beatmap = selection.beatmap;
-      const diffIndex = selection.diff;
-      this.difficulty = this.beatmap.difficulties[diffIndex];
-      console.log('[BEATMAP]', this.beatmap)
-      console.log('[DIFFICULTY]', this.difficulty);
-      this.load();
-    } else {
-      this.router.navigateByUrl('select');
-    }
+    this.route.params.subscribe(async (params) => {
+      console.log(params);
+      const resp: ServerResp = await this.beatmapService.getByID(params.id).toPromise();
+      if (resp.status === 'success') {
+        this.beatmap = resp.data;
+        this.difficulty = this.beatmap.difficulties[params.diff];
+        console.log('[BEATMAP]', this.beatmap)
+        console.log('[DIFFICULTY]', this.difficulty);
+        this.load();
+        if (nav && nav.extras.state && nav.extras.state.fromSelect) {
+          this.fromSelect = true;
+        }
+      }
+    });
   }
 
   windowFocusEvents() {
-    window.addEventListener('focus', event => {
-      this.update(this.ms);
-    });
     window.addEventListener('blur', event => {
-      console.log('BLUR');
-      window.cancelAnimationFrame(this.loopID);
+      this.pause();
     });
   }
 
@@ -106,9 +105,10 @@ export class PlayComponent implements AfterViewInit {
           for (let id in loadedAssets.images) this.assets.images[id] = loadedAssets.images[id];
           for (let id in loadedAssets.sounds) this.assets.sounds[id] = loadedAssets.sounds[id];
           console.log('[ASSETS]', this.assets);
-          this.canvas.style.backgroundImage = 'url(' + this.assets.images['bg'].data.src + ')'
+          this.canvas.style.backgroundImage = 'url(' + this.assets.images['bg'].data.src + ')';
           this.soundService.setSounds(this.assets.sounds);
           this.run();
+          if (!this.fromSelect) this.pause();
         });
       });
 
@@ -120,8 +120,8 @@ export class PlayComponent implements AfterViewInit {
   }
 
   run() {
-    //this.soundService.play('music');
-    this.update(0);
+    if (this.fromSelect) this.soundService.play('music');
+    this.update(-1);
   }
 
   ngAfterViewInit() {
@@ -137,7 +137,9 @@ export class PlayComponent implements AfterViewInit {
   }
 
   update(currentTime: number) {
-    this.ms = Math.floor(currentTime - this.startMS);
+    if (this.startMS < 0) this.startMS = currentTime;
+
+    this.ms = Math.floor(currentTime - this.startMS + this.pauseTime);
 
     if (this.hitObjects) {
 
@@ -147,13 +149,14 @@ export class PlayComponent implements AfterViewInit {
 
       this.hitObjects.forEach((hitObject: HitCircle | Slider) => {
 
+        const objectMS = hitObject.ms;
         /* Animations */
-        if (this.ms >= hitObject.ms - this.circleApproachDuration && this.ms <= hitObject.ms + this.circleApproachDuration) {
+        if (this.ms >= objectMS - this.circleApproachDuration && this.ms <= objectMS + this.circleApproachDuration) {
           if (hitObject instanceof HitCircle) {
             const hitCircle = hitObject;
-            if ((this.ms >= hitObject.ms - this.circleApproachDuration && this.ms < hitCircle.ms)) {
+            if ((this.ms >= objectMS - this.circleApproachDuration && this.ms < objectMS)) {
               hitCircle.approach(this.getFrameRate(), this.circleApproachDuration);
-            } else if ((this.ms >= hitCircle.ms && this.ms <= hitCircle.ms + this.circleApproachDuration)) {
+            } else if ((this.ms >= objectMS && this.ms <= objectMS + this.circleApproachDuration)) {
               hitCircle.disappear(this.getFrameRate(), this.circleApproachDuration);
             }
           }
@@ -212,6 +215,7 @@ export class PlayComponent implements AfterViewInit {
     this.draw();
     this.lastMS = this.ms;
     this.loopID = window.requestAnimationFrame(this.update.bind(this));
+
   }
 
   getFrameRate() {
@@ -273,26 +277,27 @@ export class PlayComponent implements AfterViewInit {
         );
       }
 
-      if (hitCircle.score === undefined || (hitCircle.score !== undefined && hitCircle.score > 0)) {
+      if (hitCircle.score !== 0) {
 
          /* Main circle */
-        this.ctx.fillStyle = 'blue';
-        this.ctx.arc(
-          this.playArea.left + hitCircle.screenPos.x,
-          this.playArea.top + hitCircle.screenPos.y,
-          hitCircle.screenSize * 0.4,
-          0, 2*Math.PI
-        );
-        this.ctx.fill();
-        this.ctx.drawImage(
-          this.assets.images['hitcircle-overlay'].data,
-          (this.playArea.left + hitCircle.screenPos.x) - (hitCircle.screenSize/2),
-          (this.playArea.top + hitCircle.screenPos.y) - (hitCircle.screenSize/2),
-          hitCircle.screenSize, hitCircle.screenSize
-        );
 
-        /* Combo */
-        if (!hitCircle.score) {
+        if (hitCircle.score === undefined) {
+          this.ctx.fillStyle = 'blue';
+          this.ctx.arc(
+            this.playArea.left + hitCircle.screenPos.x,
+            this.playArea.top + hitCircle.screenPos.y,
+            hitCircle.screenSize * 0.4,
+            0, 2*Math.PI
+          );
+          this.ctx.fill();
+          this.ctx.drawImage(
+            this.assets.images['hitcircle-overlay'].data,
+            (this.playArea.left + hitCircle.screenPos.x) - (hitCircle.screenSize/2),
+            (this.playArea.top + hitCircle.screenPos.y) - (hitCircle.screenSize/2),
+            hitCircle.screenSize, hitCircle.screenSize
+          );
+
+          /* Combo */
           this.ctx.textAlign = 'center';
           this.ctx.font = '70px Helvetica';
           this.ctx.fillStyle = 'white';
@@ -326,7 +331,7 @@ export class PlayComponent implements AfterViewInit {
             width, height
           );
         }
-      } else if (hitCircle.score !== undefined && hitCircle.score === 0) {
+      } else {
         const size = hitCircle.screenSize * 0.8;
         this.ctx.drawImage(
           this.assets.images['hit0'].data,
@@ -362,11 +367,44 @@ export class PlayComponent implements AfterViewInit {
     this.resize();
   }
 
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: any) {
+    console.log(e.keyCode);
+    switch(e.keyCode) {
+      case 27:
+        if (!this.pausing) {
+          this.pause();
+        } else {
+          this.continue();
+        }
+        break;
+    }
+  }
+
+  pause() {
+    this.pausing = true;
+    this.startMS = -1;
+    this.pauseTime = this.ms;
+    this.soundService.pause('music');
+    window.cancelAnimationFrame(this.loopID);
+    this.pauseView.show();
+  }
+
+  continue() {
+    this.pauseView.hide();
+    this.run();
+  }
+
   reset() {
-    this.startMS = 0;
+    this.startMS = -1;
     this.lastMS = 0;
     this.ms = 0;
     this.soundService.stop('music');
+  }
+
+  restart() {
+    this.reset();
+    this.continue();
   }
 
   ngOnDestroy() {

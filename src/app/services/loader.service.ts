@@ -92,6 +92,7 @@ export class LoaderService {
 
   }
 
+
   loadImage(src: string) {
     return new Promise((resolve, reject) => {
       let img = new Image()
