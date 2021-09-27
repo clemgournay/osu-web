@@ -92,6 +92,7 @@ export class PlayComponent implements AfterViewInit {
       this.data = this.beatmapService.parseOSU(dataResp.data);
       if (this.data.HitObjects) this.hitObjects = this.data.HitObjects;
       console.log('[BEATMAP DATA]', this.data);
+      console.log('[HITOBJECTS]', this.data.HitObjects);
 
       const assets: Array<Asset> = [
         {id: 'music', filename: this.beatmap.audioFilename, type: 'sound'},
@@ -152,50 +153,46 @@ export class PlayComponent implements AfterViewInit {
         const objectMS = hitObject.ms;
         /* Animations */
         if (this.ms >= objectMS - this.circleApproachDuration && this.ms <= objectMS + this.circleApproachDuration) {
-          if (hitObject instanceof HitCircle) {
-            const hitCircle = hitObject;
-            if ((this.ms >= objectMS - this.circleApproachDuration && this.ms < objectMS)) {
-              hitCircle.approach(this.getFrameRate(), this.circleApproachDuration);
-            } else if ((this.ms >= objectMS && this.ms <= objectMS + this.circleApproachDuration)) {
-              hitCircle.disappear(this.getFrameRate(), this.circleApproachDuration);
-            }
+          if ((this.ms >= objectMS - this.circleApproachDuration && this.ms < objectMS)) {
+            hitObject.approach(this.getFrameRate(), this.circleApproachDuration);
+          } else if ((this.ms >= objectMS && this.ms <= objectMS + this.circleApproachDuration)) {
+            hitObject.disappear(this.getFrameRate(), this.circleApproachDuration);
           }
         }
 
         /* Scoring */
         if (!hitObject.done) {
           if (this.clickPos) {
-            if (hitObject instanceof HitCircle) {
-              const hitCircle = hitObject;
-              if (hitCircle.isCoorInside(this.clickPos)) {
+            if (hitObject instanceof HitCircle || hitObject instanceof Slider) {
+              if (hitObject.isCoorInside(this.clickPos)) {
                 if (
-                  this.ms >= hitCircle.ms - perfectRange && this.ms <= hitCircle.ms ||
-                  this.ms >= hitCircle.ms && this.ms <= hitCircle.ms + perfectRange
+                  this.ms >= hitObject.ms - perfectRange && this.ms <= hitObject.ms ||
+                  this.ms >= hitObject.ms && this.ms <= hitObject.ms + perfectRange
                 ) {
-                  hitCircle.clicked = true;
-                  hitCircle.done = true;
-                  hitCircle.score = 300;
+                  hitObject.clicked = true;
+                  hitObject.done = true;
+                  hitObject.score = 300;
                   this.score += 300;
                 } else if (
-                  this.ms >= hitCircle.ms - goodRange && this.ms <= hitCircle.ms - perfectRange ||
-                  this.ms >= hitCircle.ms + perfectRange && this.ms <= hitCircle.ms + goodRange
+                  this.ms >= hitObject.ms - goodRange && this.ms <= hitObject.ms - perfectRange ||
+                  this.ms >= hitObject.ms + perfectRange && this.ms <= hitObject.ms + goodRange
                 ) {
-                  hitCircle.clicked = true;
-                  hitCircle.done = true;
-                  hitCircle.score = 100;
+                  hitObject.clicked = true;
+                  hitObject.done = true;
+                  hitObject.score = 100;
                   this.score += 100;
                 } else if (
-                  this.ms >= hitCircle.ms - okRange && this.ms <= hitCircle.ms - goodRange ||
-                  this.ms >= hitCircle.ms + goodRange && this.ms <= hitCircle.ms + okRange
+                  this.ms >= hitObject.ms - okRange && this.ms <= hitObject.ms - goodRange ||
+                  this.ms >= hitObject.ms + goodRange && this.ms <= hitObject.ms + okRange
                 ) {
-                  hitCircle.clicked = true;
-                  hitCircle.done = true;
-                  hitCircle.score = 50;
+                  hitObject.clicked = true;
+                  hitObject.done = true;
+                  hitObject.score = 50;
                   this.score += 50;
                 } else {
-                  hitCircle.score = 0;
-                  hitCircle.clicked = true;
-                  hitCircle.done = true;
+                  hitObject.score = 0;
+                  hitObject.clicked = true;
+                  hitObject.done = true;
                 }
               }
             }
@@ -248,6 +245,8 @@ export class PlayComponent implements AfterViewInit {
       this.hitObjects.forEach((hitObject: HitCircle | Slider) => {
         if (hitObject instanceof HitCircle) {
           this.drawHitcircle(hitObject);
+        } else if (hitObject instanceof Slider) {
+          this.drawSlider(hitObject);
         }
       });
     }
@@ -344,6 +343,98 @@ export class PlayComponent implements AfterViewInit {
     }
   }
 
+  drawSlider(slider: Slider) {
+    if (slider.visible) {
+
+      const multiplier = this.aspectRatio * 1.8;
+      slider.screenPos.x = Math.floor((slider.pos.x * this.playArea.width) / this.osuArea.width);
+      slider.screenPos.y = Math.floor((slider.pos.y * this.playArea.height) / this.osuArea.height);
+      slider.screenSize = slider.size * multiplier;
+      slider.screenRadius = (slider.screenSize/2);
+      slider.approachCircleScreenSize = slider.approachCircleSize * multiplier;
+
+      this.ctx.beginPath();
+      this.ctx.globalAlpha = slider.opacity;
+
+      /* Approach Circle */
+      if (slider.approachCircleShow) {
+        this.ctx.drawImage(
+          this.assets.images['approach-circle'].data,
+          (this.playArea.left + slider.screenPos.x) - (slider.approachCircleScreenSize/2),
+          (this.playArea.top + slider.screenPos.y) - (slider.approachCircleScreenSize/2),
+          slider.approachCircleScreenSize, slider.approachCircleScreenSize
+        );
+      }
+
+      if (slider.score !== 0) {
+
+         /* Main circle */
+
+        if (slider.score === undefined) {
+          this.ctx.fillStyle = 'lightblue';
+
+          //for (let x = slider.pos.x; x < slider.endPos)
+          this.ctx.arc(
+            this.playArea.left + slider.screenPos.x,
+            this.playArea.top + slider.screenPos.y,
+            slider.screenSize * 0.4,
+            0, 2*Math.PI
+          );
+          this.ctx.fill();
+          this.ctx.drawImage(
+            this.assets.images['hitcircle-overlay'].data,
+            (this.playArea.left + slider.screenPos.x) - (slider.screenSize/2),
+            (this.playArea.top + slider.screenPos.y) - (slider.screenSize/2),
+            slider.screenSize, slider.screenSize
+          );
+
+          /* Combo */
+          this.ctx.textAlign = 'center';
+          this.ctx.font = '70px Helvetica';
+          this.ctx.fillStyle = 'white';
+          this.ctx.fillText(
+            slider.comboNB.toString(),
+            (this.playArea.left + slider.screenPos.x),
+            (this.playArea.top+25 + slider.screenPos.y)
+          )
+        }
+
+        /* Score */
+        let image;
+        switch(slider.score) {
+          case 50:
+            image = this.assets.images['hit50'].data;
+            break;
+          case 100:
+            image = this.assets.images['hit100'].data;
+            break;
+          case 300:
+            image = this.assets.images['hit300'].data;
+            break;
+        }
+        if (image) {
+          const width = slider.screenSize * 0.7;
+          const height = width * (image.height/image.width);
+          this.ctx.drawImage(
+            image,
+            (this.playArea.left + slider.screenPos.x) - (width/2),
+            (this.playArea.top + slider.screenPos.y) - (height/2),
+            width, height
+          );
+        }
+      } else {
+        const size = slider.screenSize * 0.8;
+        this.ctx.drawImage(
+          this.assets.images['hit0'].data,
+          (this.playArea.left + slider.screenPos.x) - (size/2),
+          (this.playArea.top + slider.screenPos.y) - (size/2),
+          size, size
+        );
+      }
+      this.ctx.closePath();
+    }
+  }
+
   onMousedown(e: any) {
     if (e.which !== 2) {
       const x = e.pageX - this.playArea.left;
@@ -369,7 +460,6 @@ export class PlayComponent implements AfterViewInit {
 
   @HostListener('document:keydown', ['$event'])
   onKeydown(e: any) {
-    console.log(e.keyCode);
     switch(e.keyCode) {
       case 27:
         if (!this.pausing) {
@@ -391,8 +481,10 @@ export class PlayComponent implements AfterViewInit {
   }
 
   continue() {
+    this.pausing = false;
     this.pauseView.hide();
     this.run();
+    this.soundService.play('music');
   }
 
   reset() {

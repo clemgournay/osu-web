@@ -1,6 +1,6 @@
 <app-pause [ms]="ms" (continue)="continue()" (restart)="restart()" #pause></app-pause>
 <div class="game-view noselect">
-  <div class="title">{{beatmap.artist}} - {{beatmap.title}}</div>
+  <div class="title" *ngIf="beatmap">{{beatmap.artist}} - {{beatmap.title}}</div>
   <div class="score">{{score}}</div>
   <canvas
     [width]="canvasSize.width" [height]="canvasSize.height"

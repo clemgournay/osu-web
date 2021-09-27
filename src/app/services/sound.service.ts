@@ -32,7 +32,7 @@ export class SoundService {
   }
 
   pause(id: string) {
-    this.sounds[id].pause();
+    if (this.sounds[id]) this.sounds[id].pause();
   }
 
   stop(id: string) {
